@@ -16,45 +16,50 @@ if api_key:
 else:
     st.warning("⚠️ API 키가 설정되지 않았습니다. Streamlit Secrets에서 GEMINI_API_KEY를 등록해주세요.")
 
-# 1. [가장 중요] 오늘 냉장고 속 식재료 입력
-st.subheader("1. 🥦 오늘 냉장고에 있는 재료 (야채, 고기 등)")
-fridge_ingredients = st.text_area(
-    "활용하고 싶은 재료를 적어주세요 (필수)",
-    placeholder="예: 소고기 다짐육, 당근, 양파, 애호박, 두부, 계란",
-    height=80
-)
-
-# 2. 조건 선택 (폴더, 시간, 아기 상태)
-st.subheader("2. ⚙️ 요리 조건 선택")
-col1, col2, col3 = st.columns(3)
-with col1:
-    folder_choice = st.selectbox(
-        "어떤 레시피 폴더인가요?", 
-        ["1번 (잘 먹는 레시피 모음)", "2번 (해주고 싶은 레시피 모음)", "3번 (아침/간식 모음)"]
+# st.form으로 감싸서 버튼 클릭 시 데이터 초기화(사진 날아감) 방지
+with st.form(key="recipe_matching_form"):
+    # 1. 오늘 냉장고 속 식재료 입력
+    st.subheader("1. 🥦 오늘 냉장고에 있는 재료 (야채, 고기 등)")
+    fridge_ingredients = st.text_area(
+        "활용하고 싶은 재료를 적어주세요 (필수)",
+        placeholder="예: 소고기 다짐육, 당근, 양파, 애호박, 두부, 계란",
+        height=80
     )
-with col2:
-    cooking_time = st.selectbox(
-        "⏱️ 요리 가능 시간",
-        ["10분 이내 (초스피드)", "15분~20분 (보통)", "30분 이상 (정성 요리)", "시간 상관없음"]
+
+    # 2. 조건 선택 (폴더, 시간, 아기 상태)
+    st.subheader("2. ⚙️ 요리 조건 선택")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        folder_choice = st.selectbox(
+            "어떤 레시피 폴더인가요?", 
+            ["1번 (잘 먹는 레시피 모음)", "2번 (해주고 싶은 레시피 모음)", "3번 (아침/간식 모음)"]
+        )
+    with col2:
+        cooking_time = st.selectbox(
+            "⏱️ 요리 가능 시간",
+            ["10분 이내 (초스피드)", "15분~20분 (보통)", "30분 이상 (정성 요리)", "시간 상관없음"]
+        )
+    with col3:
+        baby_condition = st.text_input("아기 컨디션 (선택)", placeholder="예: 이가 나는 중, 밥 잘 먹음")
+
+    # 3. 캡처해둔 레시피 사진 업로드
+    st.subheader("3. 📷 보유하신 레시피 캡처 사진 업로드")
+    uploaded_files = st.file_uploader(
+        "레시피 사진들을 선택해 주세요 (여러 장 가능)", 
+        type=["jpg", "jpeg", "png", "webp"],
+        accept_multiple_files=True
     )
-with col3:
-    baby_condition = st.text_input("아기 컨디션 (선택)", placeholder="예: 이가 나는 중, 밥 잘 먹음")
 
-# 3. 캡처해둔 레시피 사진 업로드
-st.subheader("3. 📷 보유하신 레시피 캡처 사진 업로드")
-uploaded_files = st.file_uploader(
-    f"'{folder_choice}' 폴더에 있는 레시피 사진들을 올려주세요 (여러 장 가능)", 
-    type=["jpg", "jpeg", "png", "webp"],
-    accept_multiple_files=True
-)
+    additional_note = st.text_input(
+        "추가 요청사항 (선택)", 
+        placeholder="예: 매운 것 제외, 소금 간 줄이기 등"
+    )
 
-additional_note = st.text_input(
-    "추가 요청사항 (선택)", 
-    placeholder="예: 매운 것 제외, 소금 간 줄이기 등"
-)
+    # 폼 제출 버튼
+    submitted = st.form_submit_button("✨ 냉장고 재료 + 캡처 사진 매칭하여 레시피 찾기", type="primary", use_container_width=True)
 
-# 4. 분석 및 레시피 매칭 실행
-if st.button("✨ 냉장고 재료 + 캡처 사진 매칭하여 레시피 찾기", type="primary", use_container_width=True):
+# 버튼이 눌렸을 때 실행되는 로직
+if submitted:
     if not fridge_ingredients.strip():
         st.warning("⚠️ 냉장고에 있는 재료를 먼저 입력해 주세요!")
     elif not uploaded_files:
@@ -75,7 +80,7 @@ if st.button("✨ 냉장고 재료 + 캡처 사진 매칭하여 레시피 찾기
                 
                 model = genai.GenerativeModel('gemini-1.5-flash')
                 
-                # 핵심 프롬프트: 냉장고 재료와 올린 사진 속 레시피를 교차 매칭
+                # 프롬프트 설정
                 prompt = f"""
                 당신은 20개월 아기를 키우는 부모를 돕는 수석 AI 영유아 셰프입니다.
 
