@@ -78,11 +78,8 @@ if submitted:
                     img.thumbnail((1024, 1024))
                     processed_images.append(img)
                 
-                # 최신 지원 모델(gemini-2.0-flash / gemini-1.5-flash-latest) 적용
-                try:
-                    model = genai.GenerativeModel('gemini-2.0-flash')
-                except Exception:
-                    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+                # 최신 지원 모델인 gemini-3.6-flash 지정
+                model = genai.GenerativeModel('gemini-3.6-flash')
                 
                 # 프롬프트 설정
                 prompt = f"""
