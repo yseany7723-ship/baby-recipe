@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 from PIL import Image
+import io
 
 # 페이지 기본 설정
 st.set_page_config(page_title="20개월 아기 AI 레시피 분석기", page_icon="👶")
@@ -16,10 +17,12 @@ if api_key:
 else:
     st.warning("⚠️ API 키가 설정되지 않았습니다. Streamlit Secrets에서 GEMINI_API_KEY를 등록해주세요.")
 
-# 1. 사진 업로더 (대량 업로드 30장 이상 지원)
+# 1. 사진 업로더
 st.subheader("1. 📷 보유하신 레시피 캡처 사진 업로드")
+st.caption("💡 팁: 20~30장 이상 다량 올리실 때는 10장씩 나누어 올려주시면 훨씬 안정적입니다.")
+
 uploaded_files = st.file_uploader(
-    "레시피 사진들을 선택해 주세요 (최대 30장 이상 가능)", 
+    "레시피 사진들을 선택해 주세요 (여러 장 가능)", 
     type=["jpg", "jpeg", "png", "webp"],
     accept_multiple_files=True,
     key="recipe_images"
@@ -27,9 +30,9 @@ uploaded_files = st.file_uploader(
 
 # 사진 전송 완료 시 실시간 상태 표시
 if uploaded_files:
-    st.success(f"📸 총 {len(uploaded_files)}장의 사진이 안전하게 준비되었습니다!")
+    st.success(f"📸 총 {len(uploaded_files)}장의 사진이 안전하게 올려졌습니다!")
 
-# 2. 나머지 입력란과 제출 버튼 (st.form)
+# 2. 입력란과 제출 버튼
 with st.form(key="recipe_matching_form"):
     st.subheader("2. 🥦 오늘 냉장고에 있는 재료 (야채, 고기 등)")
     fridge_ingredients = st.text_area(
@@ -58,10 +61,9 @@ with st.form(key="recipe_matching_form"):
         placeholder="예: 매운 것 제외, 소금 간 줄이기 등"
     )
 
-    # 폼 제출 버튼
     submitted = st.form_submit_button("✨ 냉장고 재료 + 캡처 사진 매칭하여 레시피 찾기", type="primary", use_container_width=True)
 
-# 버튼 클릭 시 동작
+# 제출 동작
 if submitted:
     if not uploaded_files:
         st.warning("⚠️ 캡처해 두신 레시피 사진을 1장 이상 선택해 주세요!")
@@ -72,20 +74,19 @@ if submitted:
     else:
         with st.spinner(f"AI가 냉장고 재료('{fridge_ingredients}')와 올리신 레시피 사진 {len(uploaded_files)}장을 교차 분석 중입니다..."):
             try:
-                # 30장 대량 업로드 시 메모리 과부하 및 속도 저하 방지를 위한 이미지 실시간 가공
+                # 메모리 과부하 방지를 위한 압축 리사이징
                 processed_images = []
                 for file in uploaded_files:
+                    file.seek(0)
                     img = Image.open(file)
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
-                    # 이미지 30장 전송 시 빠른 전송을 위해 해상도 600px로 최적화 (글자 판독은 완벽히 유지됨)
-                    img.thumbnail((600, 600))
+                    img.thumbnail((500, 500))  # 다량 전송 시 500px로 슬림하게 압축
                     processed_images.append(img)
                 
                 # 최신 AI 모델 호출
                 model = genai.GenerativeModel('gemini-3.6-flash')
                 
-                # 프롬프트 설정
                 prompt = f"""
                 당신은 20개월 아기를 키우는 부모를 돕는 수석 AI 영유아 셰프입니다.
 
