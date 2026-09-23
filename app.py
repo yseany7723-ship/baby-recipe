@@ -16,14 +16,19 @@ if api_key:
 else:
     st.warning("⚠️ API 키가 설정되지 않았습니다. Streamlit Secrets에서 GEMINI_API_KEY를 등록해주세요.")
 
-# 1. 카테고리 및 조건 선택
-col1, col2 = st.columns(2)
+# 1. 카테고리, 요리 가능 시간, 아기 컨디션 선택
+col1, col2, col3 = st.columns(3)
 with col1:
     folder_choice = st.selectbox(
         "어떤 폴더의 사진인가요?", 
         ["1번 (잘 먹는 레시피 사진)", "2번 (해주고 싶은 레시피 사진)", "3번 (아침/간식 사진)"]
     )
 with col2:
+    cooking_time = st.selectbox(
+        "⏱️ 요리 가능 시간",
+        ["10분 이내 (초스피드)", "15분~20분 (보통)", "30분 이상 (정성 요리)", "시간 상관없음"]
+    )
+with col3:
     baby_condition = st.text_input("오늘 아기 컨디션 (선택)", placeholder="예: 이가 나는 중, 밥 잘 먹음")
 
 # 2. 다중 이미지 업로드
@@ -38,7 +43,7 @@ if uploaded_files:
     
     additional_note = st.text_input(
         "추가 요청사항 (선택)", 
-        placeholder="예: 10분 이내 조리, 매운 것 제외"
+        placeholder="예: 매운 것 제외, 특정 알레르기 유의 등"
     )
     
     if st.button("✨ AI 셰프에게 전체 사진 분석받기", type="primary", use_container_width=True):
@@ -65,14 +70,17 @@ if uploaded_files:
                     
                     [상황 정보]
                     - 선택한 폴더: {folder_choice}
+                    - 요리 가능 시간 제한: {cooking_time}
                     - 아기 컨디션: {baby_condition if baby_condition else '보통'}
                     - 추가 요청사항: {additional_note if additional_note else '없음'}
                     
                     [작업 안내]
                     1. 첨부된 {len(processed_images)}장의 사진 속 레시피, 음식, 재료들을 정밀 분석하세요.
                     2. 20개월 아기에게 꼭 맞춘 추천 레시피 2가지를 작성해 주세요.
-                    3. 다음 내용이 명확히 포함되어야 합니다:
+                    3. 반드시 지정된 요리 가능 시간({cooking_time}) 내에 완성 가능한 조리법 위주로 추천해 주세요.
+                    4. 다음 내용이 명확히 포함되어야 합니다:
                        - 💡 추천 요리 이름 및 사진 분석 결과 요약
+                       - ⏱️ 예상 조리 시간
                        - 🛒 필요 재료 (사진 속 내용 활용)
                        - 🍳 20개월 아기 맞춤 조리 순서 (3~4단계)
                        - 👶 20개월 아기 영양 & 섭취 주의 팁
